@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador de Puntos en Mensajes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #9d4edd 0%, #560bad 100%);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        
+        .input-section, .output-section {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #9d4edd;
+            color: #560bad;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 350px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #9d4edd;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .analyze-btn {
+            background-color: #9d4edd;
+            color: white;
+        }
+        
+        .analyze-btn:hover {
+            background-color: #7b2cbf;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(157, 78, 221, 0.3);
+        }
+        
+        .clear-btn {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        
+        .clear-btn:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .results {
+            margin-top: 25px;
+        }
+        
+        .result-item {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 5px solid #560bad;
+            transition: transform 0.2s;
+        }
+        
+        .result-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .person-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #9d4edd;
+            margin-bottom: 15px;
+        }
+        
+        .total-points {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .points-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .points-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+        }
+        
+        .emoji-icon {
+            font-size: 1.5rem;
+        }
+        
+        .total-all {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #560bad;
+            padding: 10px 20px;
+            background-color: rgba(157, 78, 221, 0.1);
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        
+        .points-detail {
+            margin-top: 15px;
+            color: #666;
+            font-size: 0.9rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .point-item {
+            padding: 3px 8px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: rgba(157, 78, 221, 0.05);
+            border-radius: 10px;
+            border-left: 5px solid #ff4081;
+        }
+        
+        .summary-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #ff4081;
+        }
+        
+        .summary-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .summary-item {
+            padding: 10px 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .instructions {
+            background-color: rgba(86, 11, 173, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        
+        .instructions h3 {
+            color: #560bad;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .emoji-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .emoji-sample {
+            font-size: 1.3rem;
+            padding: 2px 5px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .input-section, .output-section {
+                min-width: 100%;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .total-points {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Analizador de Puntos en Mensajes</h1>
+            <p class="subtitle">Extrae nombres y suma puntos de mensajes de chat</p>
+        </header>
+        
+        <div class="instructions">
+            <h3>📋 Instrucciones:</h3>
+            <ul>
+                <li>Pega tus mensajes en el área de texto (formato: +[cantidad] [emoji] @[nombre])</li>
+                <li>Haz clic en "Analizar Mensajes" para procesar los datos</li>
+                <li>Los resultados mostrarán el total de puntos por persona, separados por tipo de emoji</li>
+                <li>Puedes usar el botón "Limpiar" para empezar de nuevo</li>
+            </ul>
+            <div class="emoji-list">
+                <span class="emoji-sample">🤍</span>
+                <span class="emoji-sample">💜</span>
+                <span class="emoji-sample">💛</span>
+                <span class="emoji-sample">💚</span>
+                <span class="emoji-sample">💙</span>
+                <span class="emoji-sample">🧡</span>
+                <span class="emoji-sample">❤️</span>
+                <span class="emoji-sample">💖</span>
+                <span class="emoji-sample">💗</span>
+                <span class="emoji-sample">💘</span>
+                <span class="emoji-sample">💝</span>
+                <span class="emoji-sample">💞</span>
+                <span class="emoji-sample">💕</span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="input-section">
+                <h2 class="section-title">Mensajes a Analizar</h2>
+                <textarea id="messageInput" placeholder="Pega aquí tus mensajes...">[6/12, 12:24 p.m.] ‎Edgar Council: +40💜@⁨‎Edgar Council⁩ 
++30💜@⁨JonaThan⁩ 
++20💜@⁨Adriana 💎⁩
++10💜@⁨Gabriell Alejandro 🦕🇬🇦⁩  
++5💜@⁨Zayn⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +40💜@⁨JonaThan⁩ 
++20💜@⁨Adriana 💎⁩ 
++15💜@⁨‎Edgar Council⁩ 
++10💜@⁨Saul ▕⃝⃤⚯͛ 9¾💛👑⁩ 
++5💜@⁨Zayn⁩ 
++5💜@⁨Apolo 🐉🌓🫧⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +50💜@⁨Gabriell Alejandro 🦕🇬🇦⁩ 1️⃣
++40💜@⁨Apolo 🐉🌓🫧⁩ 
++30🤍@⁨Alejandro
+アレハンドロ⁩
++10💜@⁨Zayn⁩ 
++5💜@⁨Adriana 💎⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +50🤍@⁨Alejandro
+アレハンドロ⁩ ✨😶 
++20💜@⁨Adriana 💎⁩ 
++15💜@⁨‎Edgar Council⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +55💜@⁨Saul ▕⃝⃤⚯͛ 9¾💛👑⁩ OE SIIII
++40💜@⁨Zayn⁩ 
++15💜@⁨JonaThan⁩ 
++10💜@⁨Adriana 💎⁩ 
++5💜@⁨‎Edgar Council⁩ 
++5💜@⁨JonaThan⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +40🤍@⁨Alejandro
+アレハンドロ⁩ 
++20💜@⁨Adriana 💎⁩ 
++15💜@⁨‎Edgar Council⁩ 
++10💜@⁨Gabriell Alejandro 🦕🇬🇦⁩ 
++5💜@⁨Saul ▕⃝⃤⚯͛ 9¾💛👑⁩ 
++5💜@⁨Apolo 🐉🌓🫧⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +50💜@⁨Gabriell Alejandro 🦕🇬🇦⁩ 2️⃣
++20💜@⁨Adriana 💎⁩ 
++15💜@⁨JonaThan⁩ 
++10💜@⁨‎Edgar Council⁩ 
++5💜@⁨Saul ▕⃝⃤⚯͛ 9¾💛👑⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +50🤍@⁨Alejandro
+アレハンドロ⁩
++10💜@⁨Gabriell Alejandro 🦕🇬🇦⁩ 
++5💜@⁨Zayn⁩ 
++5💜@⁨Adriana 💎⁩ 
++5💜@⁨Apolo 🐉🌓🫧⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +50💜@⁨Gabriell Alejandro 🦕🇬🇦⁩ 3️⃣ FIESTAA
++30💜@⁨Saul ▕⃝⃤⚯͛ 9¾💛👑⁩ y te querías ir
++10💜@⁨Adriana 💎⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +50🤍@⁨Alejandro
+アレハンドロ⁩ 
++30💜@⁨JonaThan⁩ 
++15💜@⁨Adriana 💎⁩
++5💜@⁨Saul ▕⃝⃤⚯͛ 9¾💛👑⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +50🤍@⁨Alejandro
+アレハンドロ⁩ 
++30💜@⁨Apolo 🐉🌓🫧⁩ 
++15💜@⁨JonaThan⁩ 
++10💜@⁨Adriana 💎⁩
++5💜@⁨Zayn⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +40💜@⁨JonaThan⁩ 
++15💜@⁨Apolo 🐉🌓🫧⁩ 
++10💜@⁨Adriana 💎⁩ 
++5💜@⁨‎Edgar Council⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +50💜@⁨Gabriell Alejandro 🦕🇬🇦⁩ 4️⃣
++30💜@⁨JonaThan⁩ 
++20🤍@⁨Alejandro
+アレハンドロ⁩ 
++15💜@⁨Adriana 💎⁩
++5💜@⁨Apolo 🐉🌓🫧⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +30💜@⁨JonaThan⁩ 
++20🤍@⁨Alejandro
+アレハンドロ⁩ 
++15💜@⁨Adriana 💎⁩
++5💜@⁨Saul ▕⃝⃤⚯͛ 9¾💛👑⁩ 
++5💜@⁨Apolo 🐉🌓🫧⁩
+[6/12, 12:24 p.m.] ‎Edgar Council: +50💜@⁨Apolo 🐉🌓🫧⁩ 
++30🤍@⁨Alejandro
+アレハンドロ⁩
++20💜@⁨‎Edgar Council⁩ 
++15💜@⁨JonaThan⁩ 
++10💜@⁨Adriana 💎⁩ 
++5💜@⁨Zayn⁩</textarea>
+                
+                <div class="button-group">
+                    <button class="analyze-btn" id="analyzeBtn">Analizar Mensajes</button>
+                    <button class="clear-btn" id="clearBtn">Limpiar</button>
+                </div>
+            </div>
+            
+            <div class="output-section">
+                <h2 class="section-title">Resultados</h2>
+                <div id="resultsContainer"></div>
+                
+                <div id="summaryContainer" class="summary">
+                    <div class="summary-title">Resumen del Análisis</div>
+                    <div id="summaryContent">Esperando análisis de datos...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageInput = document.getElementById('messageInput');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const summaryContent = document.getElementById('summaryContent');
+            
+            // Función para detectar emojis comunes (más simple y confiable)
+            function getEmojiFromText(text, startIndex) {
+                // Lista de emojis comunes que buscamos
+                const commonEmojis = ['🤍', '💜', '💛', '💚', '💙', '🧡', '❤️', '💖', '💗', '💘', '💝', '💞', '💕'];
+                
+                // Buscar cualquiera de estos emojis en el texto después del número
+                const substring = text.substring(startIndex, startIndex + 5); // Buscar en los siguientes 5 caracteres
+                
+                for (const emoji of commonEmojis) {
+                    if (substring.includes(emoji)) {
+                        return emoji;
+                    }
+                }
+                
+                // Si no encontramos un emoji específico, buscar cualquier carácter emoji
+                // usando una expresión regular simple para emojis comunes
+                const emojiMatch = substring.match(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u);
+                
+                return emojiMatch ? emojiMatch[0] : '💖'; // Emoji por defecto si no se encuentra
+            }
+            
+            // Función para limpiar nombres
+            function cleanName(name) {
+                return name.replace(/[^\w\s\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}]/gu, ' ').trim();
+            }
+            
+            // Función para analizar los mensajes - VERSIÓN CORREGIDA
+            function analyzeMessages() {
+                const messages = messageInput.value;
+                if (!messages.trim()) {
+                    alert('Por favor, ingresa algunos mensajes para analizar.');
+                    return;
+                }
+                
+                // Dividir los mensajes por línea
+                const lines = messages.split('\n');
+                const results = {};
+                
+                console.log("=== INICIANDO ANÁLISIS ===");
+                
+                // Procesar cada línea
+                lines.forEach((line, lineIndex) => {
+                    if (!line.trim()) return;
+                    
+                    console.log(`\nLínea ${lineIndex + 1}: "${line}"`);
+                    
+                    // Buscar el patrón +[número]
+                    const pointMatch = line.match(/\+(\d+)/);
+                    if (!pointMatch) {
+                        console.log("  No se encontró patrón +número");
+                        return;
+                    }
+                    
+                    const points = parseInt(pointMatch[1]);
+                    console.log(`  Puntos encontrados: ${points}`);
+                    
+                    // Encontrar la posición del número
+                    const pointIndex = line.indexOf(pointMatch[0]);
+                    const afterNumberIndex = pointIndex + pointMatch[0].length;
+                    
+                    // Obtener el emoji
+                    const emoji = getEmojiFromText(line, afterNumberIndex);
+                    console.log(`  Emoji encontrado: ${emoji}`);
+                    
+                    // Buscar el nombre después de @
+                    const nameMatch = line.match(/@([^⁩]+)/) || line.match(/@([^]+)/);
+                    if (!nameMatch) {
+                        console.log("  No se encontró nombre después de @");
+                        return;
+                    }
+                    
+                    const name = cleanName(nameMatch[1]);
+                    console.log(`  Nombre extraído: "${name}"`);
+                    
+                    // Inicializar si es la primera vez que vemos a esta persona
+                    if (!results[name]) {
+                        results[name] = {
+                            totals: {},
+                            details: []
+                        };
+                    }
+                    
+                    // Sumar puntos para este emoji específico
+                    if (!results[name].totals[emoji]) {
+                        results[name].totals[emoji] = 0;
+                    }
+                    results[name].totals[emoji] += points;
+                    
+                    // Guardar detalles
+                    results[name].details.push({
+                        points: points,
+                        emoji: emoji,
+                        raw: line.trim()
+                    });
+                    
+                    console.log(`  ✅ Registrado: ${name} +${points}${emoji}`);
+                });
+                
+                console.log("\n=== RESULTADOS FINALES ===");
+                console.log(results);
+                
+                // Mostrar resultados
+                displayResults(results);
+            }
+            
+            // Función para mostrar los resultados
+            function displayResults(results) {
+                resultsContainer.innerHTML = '';
+                summaryContent.innerHTML = '';
+                
+                if (Object.keys(results).length === 0) {
+                    resultsContainer.innerHTML = '<div class="result-item">No se encontraron patrones válidos en los mensajes.</div>';
+                    summaryContent.innerHTML = 'No se pudieron extraer datos de los mensajes. Asegúrate de que sigan el formato: +[cantidad] [emoji] @[nombre]';
+                    return;
+                }
+                
+                let globalTotals = {};
+                let peopleCount = 0;
+                let totalAllPoints = 0;
+                
+                // Ordenar resultados por total de puntos
+                const sortedResults = Object.entries(results).sort((a, b) => {
+                    const totalA = Object.values(a[1].totals).reduce((sum, val) => sum + val, 0);
+                    const totalB = Object.values(b[1].totals).reduce((sum, val) => sum + val, 0);
+                    return totalB - totalA;
+                });
+                
+                // Crear elementos para cada persona
+                for (const [name, data] of sortedResults) {
+                    peopleCount++;
+                    const totalPerson = Object.values(data.totals).reduce((sum, val) => sum + val, 0);
+                    totalAllPoints += totalPerson;
+                    
+                    // Actualizar totales globales por emoji
+                    for (const [emoji, points] of Object.entries(data.totals)) {
+                        if (!globalTotals[emoji]) {
+                            globalTotals[emoji] = 0;
+                        }
+                        globalTotals[emoji] += points;
+                    }
+                    
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'result-item';
+                    
+                    // Crear elementos para cada tipo de emoji
+                    const emojiElements = Object.entries(data.totals).map(([emoji, points]) => 
+                        `<div class="points-type"><span class="points-value">${points}</span> <span class="emoji-icon">${emoji}</span></div>`
+                    ).join('');
+                    
+                    // Crear detalles de puntos
+                    const detailItems = data.details.slice(0, 10).map(d => 
+                        `<span class="point-item">+${d.points}${d.emoji}</span>`
+                    ).join(' ');
+                    
+                    const moreItems = data.details.length > 10 ? 
+                        `<span class="point-item">... y ${data.details.length - 10} más</span>` : '';
+                    
+                    resultItem.innerHTML = `
+                        <div class="person-name">${name}</div>
+                        <div class="total-points">
+                            ${emojiElements}
+                        </div>
+                        <div class="total-all">Total: ${totalPerson}</div>
+                        <div class="points-detail">${detailItems}${moreItems}</div>
+                    `;
+                    
+                    resultsContainer.appendChild(resultItem);
+                }
+                
+                // Mostrar resumen
+                const globalEmojiSummary = Object.entries(globalTotals).sort((a, b) => b[1] - a[1])
+                    .map(([emoji, points]) => 
+                        `<div class="summary-item"><strong>Total ${emoji}:</strong> ${points}</div>`
+                    ).join('');
+                
+                summaryContent.innerHTML = `
+                    <div class="summary-content">
+                        <div class="summary-item">
+                            <strong>Personas encontradas:</strong> ${peopleCount}
+                        </div>
+                        ${globalEmojiSummary}
+                        <div class="summary-item">
+                            <strong>Total general:</strong> ${totalAllPoints}
+                        </div>
+                        <div class="summary-item">
+                            <strong>Promedio por persona:</strong> ${peopleCount > 0 ? Math.round(totalAllPoints / peopleCount) : 0}
+                        </div>
+                    </div>
+                `;
+                
+                // Mostrar estadísticas en consola
+                console.log("\n=== ESTADÍSTICAS ===");
+                console.log(`Personas encontradas: ${peopleCount}`);
+                console.log(`Total general: ${totalAllPoints}`);
+                console.log("Totales por emoji:", globalTotals);
+            }
+            
+            // Función para limpiar el contenido
+            function clearContent() {
+                messageInput.value = '';
+                resultsContainer.innerHTML = '';
+                summaryContent.innerHTML = 'Esperando análisis de datos...';
+            }
+            
+            // Configurar eventos
+            analyzeBtn.addEventListener('click', analyzeMessages);
+            clearBtn.addEventListener('click', clearContent);
+            
+            // Analizar automáticamente al cargar la página
+            setTimeout(() => {
+                console.log("Analizando automáticamente...");
+                analyzeMessages();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
