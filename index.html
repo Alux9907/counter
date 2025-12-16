@@ -381,16 +381,71 @@
             return foundHearts;
         }
         
-        function cleanName(name) {
-            return name.replace(/[^\p{L}\p{N}\s\p{Emoji}]/gu, ' ').trim();
+        // FUNCIÓN MEJORADA PARA LIMPIAR NOMBRES
+function cleanName(name) {
+    if (!name) return '';
+    
+    // Mantener: letras, números, espacios, emojis, puntos, guiones, apóstrofes
+    // Eliminar solo caracteres de control y símbolos no deseados
+    let cleaned = name.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, '') // Caracteres de control
+                       .replace(/[\[\]{}()<>~`!@#$%^&*_+=|\\:;"',?]/g, ' ') // Símbolos no deseados (reemplazar por espacio)
+                       .replace(/\s+/g, ' ') // Espacios múltiples a uno solo
+                       .trim();
+    
+    // Si después de limpiar queda muy corto, devolver el original
+    if (cleaned.length < 2 && name.length >= 2) {
+        // Intentar una limpieza más suave
+        cleaned = name.replace(/[\[\]{}()<>~`!@#$%^&*_+=|\\:;"',?]/g, ' ')
+                       .replace(/\s+/g, ' ')
+                       .trim();
+    }
+    
+    return cleaned || name;
+}
+
+// FUNCIÓN MEJORADA PARA EXTRAER NOMBRES
+function extractNameFromLine(line, emoji, afterSignIndex) {
+    // Opción 1: Nombre después de @ (incluyendo emojis)
+    const atNameMatch = line.match(/@([^\s\n]+)/);
+    if (atNameMatch) {
+        const name = atNameMatch[1];
+        // Verificar que el nombre no sea solo números o muy corto
+        if (name.length >= 2 && !/^\d+$/.test(name.replace(/[^\d]/g, ''))) {
+            return cleanName(name);
         }
+    }
+    
+    // Opción 2: Buscar después del emoji
+    const emojiIndex = line.indexOf(emoji, afterSignIndex);
+    if (emojiIndex !== -1) {
+        const afterEmoji = line.substring(emojiIndex + emoji.length);
+        
+        // Patrón más flexible para nombres con emojis y puntos
+        const nameMatch = afterEmoji.match(/[\p{L}\p{Emoji}.][\p{L}\p{Emoji}\s.'-]{0,50}/u);
+        if (nameMatch) {
+            let potentialName = nameMatch[0].trim();
+            
+            // Limpiar suavemente (no eliminar puntos al inicio/final si son parte del nombre)
+            potentialName = potentialName.replace(/^\s+|\s+$/g, '');
+            
+            // Mantener puntos si están en medio (como "M.")
+            if (potentialName.length >= 2) {
+                // Solo eliminar palabras comunes no deseadas al final
+                potentialName = potentialName.replace(/\s+(p\.\s*m\.|a\.\s*m\.|oe|siii+|fiestaa)$/gi, '')
+                                             .trim();
+                
+                return cleanName(potentialName);
+            }
+        }
+    }
+    
+    return null;
+}
         
         function analyzeMessages() {
-            const messages = messageInput.value;
-            if (!messages.trim()) {
-                alert('Por favor, ingresa algunos mensajes para analizar.');
-                return;
-            }
+    const messages = messageInput.value;
+    if (!messages.trim()) {
+        alert('Por favor, ingresa algunos
             
             const lines = messages.split('\n');
             const results = {};
