@@ -342,17 +342,6 @@
         </div>
     </div>
 
-                    <div class="summary-item">
-                        <strong>Personas encontradas:</strong> ${peopleCount}
-                    </div>
-                    ${globalEmojiSummary}
-                    <div class="summary-item">
-                        <strong>Total general:</strong> ${totalAllPoints}
-                    </div>
-                    <div class="summary-item">
-                        <strong>Promedio por persona:</strong> ${peopleCount > 0 ? Math.round(totalAllPoints / peopleCount) : 0}
-                    </div>
-                </div>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const messageInput = document.getElementById('messageInput');
@@ -361,26 +350,24 @@
         const resultsContainer = document.getElementById('resultsContainer');
         const summaryContent = document.getElementById('summaryContent');
         
-        // Emojis de corazón que identifican las "casas"
-        const heartEmojis = ['🤍', '💜', '💛', '💚', '💙', '🧡', '❤️', '💖', '💗', '💘', '💝', '💞', '💕'];
-        
         function getEmojiFromText(text, startIndex) {
+            const commonEmojis = ['🤍', '💜', '💛', '💚', '💙', '🧡', '❤️', '💖', '💗', '💘', '💝', '💞', '💕'];
+            
             const substring = text.substring(startIndex, startIndex + 5);
             
-            // Buscar emojis de corazón primero
-            for (const emoji of heartEmojis) {
+            for (const emoji of commonEmojis) {
                 if (substring.includes(emoji)) {
                     return emoji;
                 }
             }
             
-            // Buscar cualquier emoji
             const emojiMatch = substring.match(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u);
             
             return emojiMatch ? emojiMatch[0] : '💖';
         }
         
         function cleanName(name) {
+            // Elimina caracteres especiales pero mantiene emojis y letras normales
             return name.replace(/[^\p{L}\p{N}\s\p{Emoji}]/gu, ' ').trim();
         }
         
@@ -393,91 +380,30 @@
             
             const lines = messages.split('\n');
             const results = {};
-            const podiumTotals = {}; // Nuevo: almacena puntos por casa/color (emoji)
             
-            // Inicializar podios para cada corazón
-            heartEmojis.forEach(emoji => {
-                podiumTotals[emoji] = 0;
-            });
-            
+            // Procesar cada línea
             lines.forEach((line) => {
                 if (!line.trim()) return;
                 
-                const lineLower = line.toLowerCase();
-                
-                // CAMBIO 4: Primero detectar si es un mensaje de PODIO
-                if (lineLower.includes('podio')) {
-                    // Buscar el patrón para podios: "podio" + cantidad
-                    const podiumMatch = line.match(/podio\s*([+-]?)\s*(\d+)/i);
-                    if (podiumMatch) {
-                        const sign = podiumMatch[1] || '+';
-                        const points = parseInt(podiumMatch[2]);
-                        const finalPoints = sign === '+' ? points : -points;
-                        
-                        // Buscar el corazón que identifica la casa
-                        let houseEmoji = '💖'; // Default
-                        for (const emoji of heartEmojis) {
-                            if (line.includes(emoji)) {
-                                houseEmoji = emoji;
-                                break;
-                            }
-                        }
-                        
-                        // Sumar puntos al podio de esa casa
-                        podiumTotals[houseEmoji] += finalPoints;
-                        
-                        // No buscar nombre ni procesar como mensaje normal
-                        return;
-                    }
-                }
-                
-                // CAMBIO 1 y 2: Detectar puntos normales (positivos o negativos, con o sin espacio)
-                const pointMatch = line.match(/([+-])\s*(\d+)/);
+                // Buscar el patrón +[número]
+                const pointMatch = line.match(/\+(\d+)/);
                 if (!pointMatch) return;
                 
-                const sign = pointMatch[1];
-                const points = parseInt(pointMatch[2]);
-                const finalPoints = sign === '+' ? points : -points;
-                
+                const points = parseInt(pointMatch[1]);
                 const pointIndex = line.indexOf(pointMatch[0]);
-                const afterSignIndex = pointIndex + pointMatch[0].length;
+                const afterNumberIndex = pointIndex + pointMatch[0].length;
                 
-                const emoji = getEmojiFromText(line, afterSignIndex);
+                // Obtener el emoji
+                const emoji = getEmojiFromText(line, afterNumberIndex);
                 
-                // CAMBIO 3: Búsqueda flexible del nombre
-                let name = '';
+                // CORRECCIÓN PRINCIPAL: Esta línea estaba mal
+                // Buscar el nombre después de @ hasta el final de línea o espacio
+                const nameMatch = line.match(/@([^\s\n]+)/);
+                if (!nameMatch) return;
                 
-                // Opción 1: Nombre después de @
-                const atNameMatch = line.match(/@([^\s\n,.:]+)/);
-                if (atNameMatch) {
-                    name = cleanName(atNameMatch[1]);
-                } 
-                // Opción 2: Buscar texto que parezca nombre después del emoji
-                else {
-                    const afterEmojiText = line.substring(afterSignIndex);
-                    // Buscar secuencia de caracteres válidos para nombre
-                    const nameInText = afterEmojiText.match(/[\p{L}\p{Emoji}][\p{L}\p{Emoji}\s.'-]{1,50}/u);
-                    if (nameInText) {
-                        // Limpiar el nombre encontrado
-                        let potentialName = nameInText[0].trim();
-                        
-                        // Eliminar números sueltos y palabras comunes
-                        potentialName = potentialName.replace(/\b\d+\b/g, '')
-                                                     .replace(/\b(p\.\s*m\.|a\.\s*m\.|oe|siii+|fiestaa|y|te|querías|ir)\b/gi, '')
-                                                     .trim();
-                        
-                        if (potentialName.length >= 2) {
-                            name = cleanName(potentialName);
-                        }
-                    }
-                }
+                const name = cleanName(nameMatch[1]);
                 
-                if (!name || name.length < 2) {
-                    // Si no encontramos nombre razonable, omitir esta línea
-                    return;
-                }
-                
-                // Inicializar datos de la persona
+                // Inicializar si es la primera vez que vemos a esta persona
                 if (!results[name]) {
                     results[name] = {
                         totals: {},
@@ -489,26 +415,26 @@
                 if (!results[name].totals[emoji]) {
                     results[name].totals[emoji] = 0;
                 }
-                results[name].totals[emoji] += finalPoints;
+                results[name].totals[emoji] += points;
                 
                 // Guardar detalles
                 results[name].details.push({
-                    points: finalPoints,
+                    points: points,
                     emoji: emoji,
                     raw: line.trim()
                 });
             });
             
-            displayResults(results, podiumTotals);
+            displayResults(results);
         }
         
-        function displayResults(results, podiumTotals) {
+        function displayResults(results) {
             resultsContainer.innerHTML = '';
             summaryContent.innerHTML = '';
             
             if (Object.keys(results).length === 0) {
                 resultsContainer.innerHTML = '<div class="result-item">No se encontraron patrones válidos en los mensajes.</div>';
-                summaryContent.innerHTML = 'No se pudieron extraer datos de los mensajes.';
+                summaryContent.innerHTML = 'No se pudieron extraer datos de los mensajes. Asegúrate de que sigan el formato: +[cantidad] [emoji] @[nombre]';
                 return;
             }
             
@@ -540,89 +466,36 @@
                 const resultItem = document.createElement('div');
                 resultItem.className = 'result-item';
                 
-                // Color del borde según total (rojo para negativos)
-                const borderColor = totalPerson >= 0 ? '#560bad' : '#ff4081';
-                resultItem.style.borderLeftColor = borderColor;
-                
-                // Mostrar total en rojo si es negativo
-                const totalDisplay = totalPerson >= 0 ? 
-                    `<div class="total-all">Total: ${totalPerson}</div>` :
-                    `<div class="total-all" style="color: #ff4081;">Total: ${totalPerson}</div>`;
-                
                 // Crear elementos para cada tipo de emoji
-                const emojiElements = Object.entries(data.totals).map(([emoji, points]) => {
-                    const pointColor = points >= 0 ? '' : 'style="color: #ff4081;"';
-                    return `<div class="points-type"><span class="points-value" ${pointColor}>${points}</span> <span class="emoji-icon">${emoji}</span></div>`;
-                }).join('');
+                const emojiElements = Object.entries(data.totals).map(([emoji, points]) => 
+                    `<div class="points-type"><span class="points-value">${points}</span> <span class="emoji-icon">${emoji}</span></div>`
+                ).join('');
                 
                 // Crear detalles de puntos
-                const detailItems = data.details.slice(0, 8).map(d => {
-                    const sign = d.points >= 0 ? '+' : '';
-                    const color = d.points >= 0 ? '' : 'style="color: #ff4081;"';
-                    return `<span class="point-item" ${color}>${sign}${d.points}${d.emoji}</span>`;
-                }).join(' ');
+                const detailItems = data.details.slice(0, 10).map(d => 
+                    `<span class="point-item">+${d.points}${d.emoji}</span>`
+                ).join(' ');
                 
-                const moreItems = data.details.length > 8 ? 
-                    `<span class="point-item">... y ${data.details.length - 8} más</span>` : '';
+                const moreItems = data.details.length > 10 ? 
+                    `<span class="point-item">... y ${data.details.length - 10} más</span>` : '';
                 
                 resultItem.innerHTML = `
                     <div class="person-name">${name}</div>
                     <div class="total-points">
                         ${emojiElements}
                     </div>
-                    ${totalDisplay}
+                    <div class="total-all">Total: ${totalPerson}</div>
                     <div class="points-detail">${detailItems}${moreItems}</div>
                 `;
                 
                 resultsContainer.appendChild(resultItem);
             }
             
-            // Crear sección de podios (NUEVO)
-            let podiumSection = '';
-            let totalPodiumPoints = 0;
-            let hasPodiums = false;
-            
-            // Filtrar solo los corazones que tienen puntos de podio
-            const activePodiums = Object.entries(podiumTotals).filter(([emoji, points]) => points !== 0);
-            
-            if (activePodiums.length > 0) {
-                hasPodiums = true;
-                podiumSection = `
-                    <div class="summary" style="margin-top: 20px; border-left-color: #FFD700;">
-                        <div class="summary-title" style="color: #FFD700;">🏆 Puntos de Podio por Casa</div>
-                        <div class="summary-content">
-                `;
-                
-                activePodiums.forEach(([emoji, points]) => {
-                    totalPodiumPoints += points;
-                    const sign = points >= 0 ? '+' : '';
-                    podiumSection += `
-                        <div class="summary-item">
-                            <strong>Casa ${emoji}:</strong> ${sign}${points}
-                        </div>
-                    `;
-                });
-                
-                podiumSection += `
-                        </div>
-                        <div style="margin-top: 15px; font-weight: bold;">
-                            <strong>Total Podios:</strong> ${totalPodiumPoints >= 0 ? '+' : ''}${totalPodiumPoints}
-                        </div>
-                    </div>
-                `;
-            }
-            
-            // Mostrar resumen general
-            const globalEmojiSummary = Object.entries(globalTotals)
-                .filter(([_, points]) => points !== 0)
-                .sort((a, b) => b[1] - a[1])
-                .map(([emoji, points]) => {
-                    const sign = points >= 0 ? '+' : '';
-                    return `<div class="summary-item"><strong>Total ${emoji}:</strong> ${sign}${points}</div>`;
-                }).join('');
-            
-            // Calcular total general INCLUYENDO podios
-            const grandTotal = totalAllPoints + totalPodiumPoints;
+            // Mostrar resumen
+            const globalEmojiSummary = Object.entries(globalTotals).sort((a, b) => b[1] - a[1])
+                .map(([emoji, points]) => 
+                    `<div class="summary-item"><strong>Total ${emoji}:</strong> ${points}</div>`
+                ).join('');
             
             summaryContent.innerHTML = `
                 <div class="summary-content">
@@ -631,17 +504,12 @@
                     </div>
                     ${globalEmojiSummary}
                     <div class="summary-item">
-                        <strong>Total personas:</strong> ${totalAllPoints >= 0 ? '+' : ''}${totalAllPoints}
-                    </div>
-                    ${hasPodiums ? `<div class="summary-item"><strong>Total podios:</strong> ${totalPodiumPoints >= 0 ? '+' : ''}${totalPodiumPoints}</div>` : ''}
-                    <div class="summary-item" style="background-color: rgba(157, 78, 221, 0.1); font-weight: bold;">
-                        <strong>TOTAL GENERAL:</strong> ${grandTotal >= 0 ? '+' : ''}${grandTotal}
+                        <strong>Total general:</strong> ${totalAllPoints}
                     </div>
                     <div class="summary-item">
                         <strong>Promedio por persona:</strong> ${peopleCount > 0 ? Math.round(totalAllPoints / peopleCount) : 0}
                     </div>
                 </div>
-                ${podiumSection}
             `;
         }
         
@@ -660,4 +528,4 @@
             analyzeMessages();
         }, 500);
     });
-    </script>
+                                                                 </script>
