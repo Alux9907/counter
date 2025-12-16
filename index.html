@@ -265,7 +265,7 @@
             border-radius: 4px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        
+    
         @media (max-width: 768px) {
             .content {
                 flex-direction: column;
@@ -353,6 +353,8 @@
         // Emojis de corazón en ORDEN de prioridad (💖 al final como default)
         const heartEmojis = ['🤍', '💜', '💛', '💚', '💙', '🧡', '❤️', '💗', '💘', '💝', '💞', '💕', '💖'];
         
+        // ========== FUNCIONES HELPER ==========
+        
         // Función mejorada para detectar el emoji CORRECTO
         function getEmojiFromText(text, startIndex) {
             const substring = text.substring(startIndex, Math.min(startIndex + 10, text.length));
@@ -381,71 +383,34 @@
             return foundHearts;
         }
         
-        // FUNCIÓN MEJORADA PARA LIMPIAR NOMBRES
-function cleanName(name) {
-    if (!name) return '';
-    
-    // Mantener: letras, números, espacios, emojis, puntos, guiones, apóstrofes
-    // Eliminar solo caracteres de control y símbolos no deseados
-    let cleaned = name.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, '') // Caracteres de control
-                       .replace(/[\[\]{}()<>~`!@#$%^&*_+=|\\:;"',?]/g, ' ') // Símbolos no deseados (reemplazar por espacio)
-                       .replace(/\s+/g, ' ') // Espacios múltiples a uno solo
-                       .trim();
-    
-    // Si después de limpiar queda muy corto, devolver el original
-    if (cleaned.length < 2 && name.length >= 2) {
-        // Intentar una limpieza más suave
-        cleaned = name.replace(/[\[\]{}()<>~`!@#$%^&*_+=|\\:;"',?]/g, ' ')
-                       .replace(/\s+/g, ' ')
-                       .trim();
-    }
-    
-    return cleaned || name;
-}
-
-// FUNCIÓN MEJORADA PARA EXTRAER NOMBRES
-function extractNameFromLine(line, emoji, afterSignIndex) {
-    // Opción 1: Nombre después de @ (incluyendo emojis)
-    const atNameMatch = line.match(/@([^\s\n]+)/);
-    if (atNameMatch) {
-        const name = atNameMatch[1];
-        // Verificar que el nombre no sea solo números o muy corto
-        if (name.length >= 2 && !/^\d+$/.test(name.replace(/[^\d]/g, ''))) {
-            return cleanName(name);
-        }
-    }
-    
-    // Opción 2: Buscar después del emoji
-    const emojiIndex = line.indexOf(emoji, afterSignIndex);
-    if (emojiIndex !== -1) {
-        const afterEmoji = line.substring(emojiIndex + emoji.length);
-        
-        // Patrón más flexible para nombres con emojis y puntos
-        const nameMatch = afterEmoji.match(/[\p{L}\p{Emoji}.][\p{L}\p{Emoji}\s.'-]{0,50}/u);
-        if (nameMatch) {
-            let potentialName = nameMatch[0].trim();
+        // Función mejorada para limpiar nombres
+        function cleanName(name) {
+            if (!name) return '';
             
-            // Limpiar suavemente (no eliminar puntos al inicio/final si son parte del nombre)
-            potentialName = potentialName.replace(/^\s+|\s+$/g, '');
+            // Mantener: letras, números, espacios, emojis, puntos, guiones, apóstrofes
+            let cleaned = name.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF\u202E]/g, '') // Caracteres de control
+                               .replace(/[\[\]{}()<>~`!@#$%^&*_+=|\\:;"',?⁨⁩]/g, ' ') // Símbolos no deseados
+                               .replace(/\s+/g, ' ') // Espacios múltiples a uno solo
+                               .trim();
             
-            // Mantener puntos si están en medio (como "M.")
-            if (potentialName.length >= 2) {
-                // Solo eliminar palabras comunes no deseadas al final
-                potentialName = potentialName.replace(/\s+(p\.\s*m\.|a\.\s*m\.|oe|siii+|fiestaa)$/gi, '')
-                                             .trim();
-                
-                return cleanName(potentialName);
+            // Si después de limpiar queda muy corto, devolver el original
+            if (cleaned.length < 1 && name.length >= 1) {
+                cleaned = name.replace(/[\[\]{}()<>~`!@#$%^&*_+=|\\:;"',?⁨⁩]/g, ' ')
+                               .replace(/\s+/g, ' ')
+                               .trim();
             }
+            
+            return cleaned || name;
         }
-    }
-    
-    return null;
-}
+        
+        // ========== FUNCIÓN PRINCIPAL DE ANÁLISIS ==========
         
         function analyzeMessages() {
-    const messages = messageInput.value;
-    if (!messages.trim()) {
-        alert('Por favor, ingresa algunos
+            const messages = messageInput.value;
+            if (!messages.trim()) {
+                alert('Por favor, ingresa algunos mensajes para analizar.');
+                return;
+            }
             
             const lines = messages.split('\n');
             const results = {};
@@ -470,11 +435,11 @@ function extractNameFromLine(line, emoji, afterSignIndex) {
                         const points = parseInt(podiumMatch[2]);
                         const finalPoints = sign === '+' ? points : -points;
                         
-                        // CORRECCIÓN: Encontrar TODOS los corazones en el mensaje
+                        // Encontrar TODOS los corazones en el mensaje
                         const heartsInLine = getAllHeartsInText(line);
                         
                         if (heartsInLine.length > 0) {
-                            // Usar el PRIMER corazón encontrado (el más específico)
+                            // Usar el PRIMER corazón encontrado
                             const houseEmoji = heartsInLine[0];
                             podiumTotals[houseEmoji] += finalPoints;
                             console.log(`Podio detectado: ${finalPoints} puntos para casa ${houseEmoji}`);
@@ -488,7 +453,7 @@ function extractNameFromLine(line, emoji, afterSignIndex) {
                     }
                 }
                 
-                // DETECCIÓN DE PUNTOS NORMALES
+                // DETECCIÓN DE PUNTOS NORMALES (con o sin espacio después del signo)
                 const pointMatch = line.match(/([+-])\s*(\d+)/);
                 if (!pointMatch) return;
                 
@@ -499,47 +464,72 @@ function extractNameFromLine(line, emoji, afterSignIndex) {
                 const pointIndex = line.indexOf(pointMatch[0]);
                 const afterSignIndex = pointIndex + pointMatch[0].length;
                 
-                // CORRECCIÓN: Obtener el emoji CORRECTO (no siempre 💖)
+                // Obtener el emoji
                 const emoji = getEmojiFromText(line, afterSignIndex);
                 if (!emoji) {
                     console.log(`Línea ${lineIndex + 1}: No se encontró emoji, omitiendo`);
                     return;
                 }
                 
-                // BÚSQUEDA DEL NOMBRE
+                // BÚSQUEDA DEL NOMBRE (VERSIÓN MEJORADA)
                 let name = '';
                 
-                // Opción 1: Nombre después de @
-                const atNameMatch = line.match(/@([^\s\n,.:]+)/);
+                // Opción 1: Nombre después de @ (más flexible)
+                const atNameMatch = line.match(/@\s*([^\s\n,.:]+)/);
                 if (atNameMatch) {
-                    name = cleanName(atNameMatch[1]);
-                } 
-                // Opción 2: Buscar después del emoji
-                else {
-                    // Encontrar la posición del emoji
+                    let potentialName = atNameMatch[1];
+                    potentialName = cleanName(potentialName);
+                    
+                    if (potentialName.length >= 1 && !/^\d+$/.test(potentialName.replace(/[^\d]/g, ''))) {
+                        name = potentialName;
+                    }
+                }
+                
+                // Opción 2: Si no hay @, buscar después del emoji
+                if (!name) {
                     const emojiIndex = line.indexOf(emoji, afterSignIndex);
                     if (emojiIndex !== -1) {
                         const afterEmoji = line.substring(emojiIndex + emoji.length);
-                        // Buscar secuencia que parezca nombre
-                        const nameMatch = afterEmoji.match(/[\p{L}\p{Emoji}][\p{L}\p{Emoji}\s.'-]{1,40}/u);
+                        
+                        // Buscar texto que parezca nombre (incluyendo emojis y puntos)
+                        const nameMatch = afterEmoji.match(/([\p{L}\p{Emoji}.][\p{L}\p{Emoji}\s.'-]{0,50})/u);
                         if (nameMatch) {
-                            let potentialName = nameMatch[0].trim();
-                            // Limpiar
-                            potentialName = potentialName.replace(/\b\d+\b/g, '')
-                                                         .replace(/\b(p\.\s*m\.|a\.\s*m\.|oe|siii+|fiestaa|y|te|querías|ir)\b/gi, '')
+                            let potentialName = nameMatch[1].trim();
+                            potentialName = cleanName(potentialName);
+                            
+                            // Eliminar palabras comunes no deseadas
+                            potentialName = potentialName.replace(/\b(p\.\s*m\.|a\.\s*m\.|oe|siii+|fiestaa|y|te|querías|ir)\b/gi, '')
                                                          .trim();
                             
                             if (potentialName.length >= 2) {
-                                name = cleanName(potentialName);
+                                name = potentialName;
                             }
                         }
                     }
                 }
                 
-                if (!name || name.length < 2) {
-                    console.log(`Línea ${lineIndex + 1}: Nombre no válido encontrado: "${name}"`);
+                // Opción 3: Buscar cualquier texto que parezca nombre en la línea
+                if (!name) {
+                    // Buscar secuencia de caracteres válidos para nombre
+                    const anyTextMatch = line.match(/[\p{L}\p{Emoji}.][\p{L}\p{Emoji}\s.'-]{2,}/u);
+                    if (anyTextMatch) {
+                        const candidates = anyTextMatch[0].split(/\s+/);
+                        for (let candidate of candidates) {
+                            candidate = cleanName(candidate);
+                            if (candidate.length >= 2 && !heartEmojis.includes(candidate) && !/^\d+$/.test(candidate)) {
+                                name = candidate;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if (!name || name.length < 1) {
+                    console.log(`Línea ${lineIndex + 1}: Nombre no válido. Línea: "${line}"`);
                     return;
                 }
+                
+                console.log(`Línea ${lineIndex + 1}: Registrado: "${name}" ${sign}${points}${emoji}`);
                 
                 // REGISTRAR RESULTADO
                 if (!results[name]) {
@@ -560,12 +550,19 @@ function extractNameFromLine(line, emoji, afterSignIndex) {
                     raw: line.trim(),
                     lineNumber: lineIndex + 1
                 });
-                
-                console.log(`Registrado: ${name} ${sign}${points}${emoji}`);
+            });
+            
+            // DEPURACIÓN: Mostrar todos los resultados encontrados
+            console.log("=== RESULTADOS ENCONTRADOS ===");
+            Object.keys(results).forEach((name, i) => {
+                const total = Object.values(results[name].totals).reduce((a, b) => a + b, 0);
+                console.log(`${i + 1}. ${name}: ${total} puntos`);
             });
             
             displayResults(results, podiumTotals);
         }
+        
+        // ========== FUNCIÓN PARA MOSTRAR RESULTADOS ==========
         
         function displayResults(results, podiumTotals) {
             resultsContainer.innerHTML = '';
@@ -710,17 +707,22 @@ function extractNameFromLine(line, emoji, afterSignIndex) {
             `;
         }
         
+        // ========== FUNCIÓN PARA LIMPIAR ==========
+        
         function clearContent() {
             messageInput.value = '';
             resultsContainer.innerHTML = '';
             summaryContent.innerHTML = 'Esperando análisis de datos...';
         }
         
-        // Eventos
+        // ========== CONFIGURACIÓN DE EVENTOS ==========
+        
         analyzeBtn.addEventListener('click', analyzeMessages);
         clearBtn.addEventListener('click', clearContent);
         
-        // Auto-análisis al cargar
-        setTimeout(analyzeMessages, 500);
+        // Analizar automáticamente al cargar la página
+        setTimeout(() => {
+            analyzeMessages();
+        }, 500);
     });
-                             </script>
+        </script>
