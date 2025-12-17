@@ -725,4 +725,192 @@
             analyzeMessages();
         }, 500);
     });
+
+            // ========== FUNCIÓN PARA EXPORTAR DATOS ==========
+        
+        function exportToTxt() {
+            const messages = messageInput.value;
+            if (!messages.trim()) {
+                alert('No hay datos para exportar.');
+                return;
+            }
+            
+            // Ejecutar análisis para obtener resultados actuales
+            analyzeMessages();
+            
+            // Esperar un momento para que se procesen los resultados
+            setTimeout(() => {
+                // Obtener resultados del análisis
+                const resultsText = generateExportText();
+                
+                if (!resultsText) {
+                    alert('No se pudieron generar datos para exportar.');
+                    return;
+                }
+                
+                // Crear archivo y descargar
+                const blob = new Blob([resultsText], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                
+                // Nombre del archivo con fecha
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+                const filename = `analisis_puntos_${dateStr}_${timeStr}.txt`;
+                
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                console.log('Archivo exportado:', filename);
+            }, 500); // Pequeña pausa para asegurar que el análisis termine
+        }
+        
+        // Función para generar el texto de exportación
+        function generateExportText() {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const summaryContainer = document.getElementById('summaryContent');
+            
+            if (!resultsContainer || !summaryContainer) return '';
+            
+            // Obtener texto de resultados
+            const resultsHTML = resultsContainer.innerHTML;
+            const summaryHTML = summaryContainer.innerHTML;
+            
+            // Convertir HTML a texto plano
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = resultsHTML;
+            const resultsText = extractTextFromElements(tempDiv);
+            
+            tempDiv.innerHTML = summaryHTML;
+            const summaryText = extractTextFromElements(tempDiv);
+            
+            // Obtener los mensajes originales
+            const originalMessages = messageInput.value;
+            
+            // Crear contenido del archivo
+            const exportContent = `ANÁLISIS DE PUNTOS - ${new Date().toLocaleString()}
+================================================================
+
+MENSAJES ORIGINALES:
+================================================================
+${originalMessages}
+
+================================================================
+RESULTADOS DEL ANÁLISIS:
+================================================================
+${resultsText}
+
+================================================================
+RESUMEN Y ESTADÍSTICAS:
+================================================================
+${summaryText}
+
+================================================================
+INFORMACIÓN DEL ANÁLISIS:
+================================================================
+- Generado el: ${new Date().toLocaleString()}
+- Total de líneas procesadas: ${originalMessages.split('\\n').length}
+- Herramienta: Analizador de Puntos en Mensajes
+- Nota: Los podios son puntos asignados a casas, no a personas específicas.
+
+================================================================
+FIN DEL REPORTE
+================================================================`;
+            
+            return exportContent;
+        }
+        
+        // Función auxiliar para extraer texto de elementos HTML
+        function extractTextFromElements(container) {
+            let text = '';
+            
+            // Extraer texto de elementos específicos
+            const personNames = container.querySelectorAll('.person-name');
+            const totalPoints = container.querySelectorAll('.total-points');
+            const totalAll = container.querySelectorAll('.total-all');
+            const pointsDetail = container.querySelectorAll('.points-detail');
+            const summaryItems = container.querySelectorAll('.summary-item');
+            
+            // Procesar personas
+            if (personNames.length > 0) {
+                text += 'PERSONAS ENCONTRADAS:\n';
+                text += '-------------------\n';
+                
+                personNames.forEach((person, index) => {
+                    const name = person.textContent.trim();
+                    const points = totalAll[index] ? totalAll[index].textContent.trim() : 'N/A';
+                    const details = pointsDetail[index] ? pointsDetail[index].textContent.trim() : '';
+                    
+                    text += `${index + 1}. ${name}\n`;
+                    text += `   Total: ${points}\n`;
+                    if (details) {
+                        text += `   Detalles: ${details}\n`;
+                    }
+                    text += '\n';
+                });
+            }
+            
+            // Procesar resumen
+            if (summaryItems.length > 0) {
+                text += 'RESUMEN GENERAL:\n';
+                text += '---------------\n';
+                
+                summaryItems.forEach(item => {
+                    text += `• ${item.textContent.trim()}\n`;
+                });
+            }
+            
+            return text;
+        }
+        
+        // ========== CREAR BOTÓN DE EXPORTACIÓN ==========
+        
+        // Crear y agregar botón de exportación al DOM
+        function addExportButton() {
+            // Crear contenedor para el botón
+            const exportContainer = document.createElement('div');
+            exportContainer.className = 'button-group';
+            exportContainer.style.marginTop = '20px';
+            
+            // Crear botón de exportación
+            const exportBtn = document.createElement('button');
+            exportBtn.id = 'exportBtn';
+            exportBtn.className = 'analyze-btn';
+            exportBtn.innerHTML = '📥 Exportar a TXT';
+            exportBtn.style.backgroundColor = '#28a745';
+            
+            // Agregar evento
+            exportBtn.addEventListener('click', exportToTxt);
+            
+            // Agregar al contenedor
+            exportContainer.appendChild(exportBtn);
+            
+            // Insertar después del contenedor de resultados
+            const outputSection = document.querySelector('.output-section');
+            if (outputSection) {
+                const summaryDiv = document.getElementById('summaryContainer');
+                if (summaryDiv) {
+                    outputSection.insertBefore(exportContainer, summaryDiv.nextSibling);
+                } else {
+                    outputSection.appendChild(exportContainer);
+                }
+            }
+            
+            console.log('Botón de exportación agregado');
+        }
+        
+        // ========== INICIALIZACIÓN ==========
+        
+        // Agregar botón de exportación cuando la página cargue
+        setTimeout(addExportButton, 1000);
+        
+        // También agregar el botón si el usuario hace clic en Analizar
+        analyzeBtn.addEventListener('click', function() {
+            setTimeout(addExportButton, 300);
+        });
         </script>
