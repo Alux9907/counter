@@ -297,32 +297,33 @@
         <div class="instructions">
             <h3>📋 Instrucciones:</h3>
             <ul>
-                <li>Pega tus mensajes en el área de texto (formato: +[cantidad] [emoji] @[nombre])</li>
+                <li>Pega tus mensajes en el área de texto (formato: +[cantidad] [corazón] @[nombre])</li>
+                <li>Ejemplo: <strong>+3 ❤️ @Juan</strong> o <strong>-1 💙 @María</strong></li>
                 <li>Haz clic en "Analizar Mensajes" para procesar los datos</li>
-                <li>Los resultados mostrarán el total de puntos por persona, separados por tipo de emoji</li>
+                <li>Los resultados mostrarán el total de puntos por persona, separados por tipo de corazón</li>
                 <li>Puedes usar el botón "Limpiar" para empezar de nuevo</li>
             </ul>
             <div class="emoji-list">
-                <span class="emoji-sample">🤍</span>
-                <span class="emoji-sample">💜</span>
+                <span class="emoji-sample">❤️</span>
+                <span class="emoji-sample">🧡</span>
                 <span class="emoji-sample">💛</span>
                 <span class="emoji-sample">💚</span>
                 <span class="emoji-sample">💙</span>
-                <span class="emoji-sample">🧡</span>
-                <span class="emoji-sample">❤️</span>
-                <span class="emoji-sample">💖</span>
-                <span class="emoji-sample">💗</span>
-                <span class="emoji-sample">💘</span>
-                <span class="emoji-sample">💝</span>
-                <span class="emoji-sample">💞</span>
-                <span class="emoji-sample">💕</span>
+                <span class="emoji-sample">💜</span>
+                <span class="emoji-sample">🤎</span>
+                <span class="emoji-sample">🖤</span>
+                <span class="emoji-sample">🤍</span>
+                <span class="emoji-sample">🩷</span>
+                <span class="emoji-sample">🩵</span>
+                <span class="emoji-sample">🩶</span>
+                <span class="emoji-sample">♥️</span>
             </div>
         </div>
         
         <div class="content">
             <div class="input-section">
                 <h2 class="section-title">Mensajes a Analizar</h2>
-                <textarea id="messageInput" placeholder="Pega aquí tus mensajes...">⁩</textarea>
+                <textarea id="messageInput" placeholder="Pega aquí tus mensajes...&#10;Ejemplo:&#10;+5 ❤️ @Ana&#10;-2 💙 @Luis&#10;+3 💜 @Carlos"></textarea>
                 
                 <div class="button-group">
                     <button class="analyze-btn" id="analyzeBtn">Analizar Mensajes</button>
@@ -362,24 +363,30 @@
         console.log('Elementos del DOM encontrados correctamente');
         
         // ========== CONFIGURACIÓN ==========
-        const HEART_EMOJIS = ['🤍', '💜', '💛', '💚', '💙', '🧡', '❤️', '💗', '💘', '💝', '💞', '💕', '💖', '🖤', '🩷'];
-        
-        // ========== VARIABLES DE ESTADO ==========
-        let lastResults = null;
-        let lastPodiums = null;
-        let exportButtonAdded = false;
+        // LISTA COMPLETA DE CORAZONES SEGÚN SOLICITUD
+        const HEART_EMOJIS = ['❤️', '🧡', '💛', '💚', '💙', '💜', '🤎', '🖤', '🤍', '🩷', '🩵', '🩶', '♥️'];
         
         // ========== FUNCIONES BÁSICAS ==========
         
+        // Función mejorada para detectar corazones
         function detectHeartEmoji(text, startIndex) {
             if (!text || startIndex >= text.length) return '';
             
-            const searchLength = Math.min(10, text.length - startIndex);
-            const searchText = text.substring(startIndex, startIndex + searchLength);
+            // Buscar desde la posición indicada
+            const searchText = text.substring(startIndex);
             
-            // Buscar en orden de prioridad
-            for (const emoji of HEART_EMOJIS) {
-                if (searchText.indexOf(emoji) !== -1) {
+            // Ordenar por longitud para detectar primero los más largos (como ❤️ que tiene variante)
+            const sortedEmojis = [...HEART_EMOJIS].sort((a, b) => b.length - a.length);
+            
+            for (const emoji of sortedEmojis) {
+                if (searchText.indexOf(emoji) === 0) {
+                    return emoji;
+                }
+            }
+            
+            // Búsqueda más flexible
+            for (const emoji of sortedEmojis) {
+                if (searchText.includes(emoji)) {
                     return emoji;
                 }
             }
@@ -387,10 +394,13 @@
             return '';
         }
         
+        // Función para encontrar todos los corazones en un texto
         function findAllHearts(text) {
             const found = [];
-            for (const emoji of HEART_EMOJIS) {
-                if (text.indexOf(emoji) !== -1) {
+            const sortedEmojis = [...HEART_EMOJIS].sort((a, b) => b.length - a.length);
+            
+            for (const emoji of sortedEmojis) {
+                if (text.includes(emoji) && !found.includes(emoji)) {
                     found.push(emoji);
                 }
             }
@@ -400,16 +410,10 @@
         function cleanName(name) {
             if (!name) return '';
             
-            // Eliminar caracteres problemáticos pero mantener emojis
+            // Eliminar caracteres problemáticos
             let cleaned = name;
-            
-            // Eliminar caracteres de control específicos
             cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF\u202E]/g, '');
-            
-            // Eliminar símbolos no deseados (pero mantener puntos y espacios)
-            cleaned = cleaned.replace(/[\[\]{}()<>~`!@#$%^&*_+=|\\:;"',?⁨⁩]/g, ' ');
-            
-            // Reducir múltiples espacios a uno solo
+            cleaned = cleaned.replace(/[\[\]{}()<>~`!@#$%^&*_+=|\\:;"',?]/g, ' ');
             cleaned = cleaned.replace(/\s+/g, ' ').trim();
             
             return cleaned || name;
@@ -452,7 +456,7 @@
                         const finalPoints = sign === '+' ? points : -points;
                         
                         const hearts = findAllHearts(line);
-                        const houseEmoji = hearts.length > 0 ? hearts[0] : '💖';
+                        const houseEmoji = hearts.length > 0 ? hearts[0] : '❤️';
                         
                         podiumTotals[houseEmoji] += finalPoints;
                         processedLines++;
@@ -460,7 +464,7 @@
                     }
                 }
                 
-                // DETECTAR PUNTOS NORMALES
+                // DETECTAR PUNTOS NORMALES - Patrón mejorado
                 const pointMatch = line.match(/([+-])\s*(\d+)/);
                 if (!pointMatch) continue;
                 
@@ -471,47 +475,64 @@
                 const pointIndex = line.indexOf(pointMatch[0]);
                 const afterSignIndex = pointIndex + pointMatch[0].length;
                 
-                // Obtener emoji
-                const emoji = detectHeartEmoji(line, afterSignIndex);
+                // Obtener emoji - buscar inmediatamente después del número
+                let emoji = '';
+                const afterSignText = line.substring(afterSignIndex);
+                
+                // Buscar cualquier corazón en el texto restante
+                const sortedEmojis = [...HEART_EMOJIS].sort((a, b) => b.length - a.length);
+                for (const heart of sortedEmojis) {
+                    if (afterSignText.includes(heart)) {
+                        emoji = heart;
+                        break;
+                    }
+                }
+                
                 if (!emoji) continue;
                 
-                // BUSCAR NOMBRE (versión simple y confiable)
+                // EXTRAER NOMBRE - Múltiples estrategias
                 let name = '';
                 
-                // Opción 1: Nombre después de @
-                const atMatch = line.match(/@([^\s\n]+)/);
+                // Estrategia 1: Buscar @nombre
+                const atMatch = line.match(/@([A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\s_.-]+)/);
                 if (atMatch) {
                     name = cleanName(atMatch[1]);
                 }
                 
-                // Opción 2: Si no hay @, buscar texto después del emoji
+                // Estrategia 2: Buscar después del corazón
                 if (!name) {
-                    const emojiIndex = line.indexOf(emoji, afterSignIndex);
+                    const emojiIndex = line.indexOf(emoji);
                     if (emojiIndex !== -1) {
-                        const afterEmoji = line.substring(emojiIndex + emoji.length, emojiIndex + emoji.length + 50);
-                        const nameMatch = afterEmoji.match(/([A-Za-zÁÉÍÓÚáéíóúÑñ\s.]+)/);
-                        if (nameMatch) {
-                            name = cleanName(nameMatch[0].trim());
+                        let afterEmoji = line.substring(emojiIndex + emoji.length);
+                        // Tomar la primera palabra después del corazón
+                        const wordMatch = afterEmoji.match(/^\s*([A-Za-z0-9ÁÉÍÓÚáéíóúÑñ_.-]+)/);
+                        if (wordMatch && wordMatch[1]) {
+                            name = cleanName(wordMatch[1]);
                         }
                     }
                 }
                 
-                // Opción 3: Extraer cualquier texto que no sea número o emoji
+                // Estrategia 3: Buscar cualquier palabra después del número
                 if (!name) {
-                    const textAfterPoints = line.substring(afterSignIndex);
-                    const words = textAfterPoints.split(/\s+/).filter(word => {
-                        return word.length > 1 && 
-                               !word.match(/^\d+$/) && 
-                               !HEART_EMOJIS.some(heart => word.includes(heart));
-                    });
-                    
-                    if (words.length > 0) {
-                        name = cleanName(words[0]);
+                    const words = line.substring(afterSignIndex).split(/\s+/);
+                    for (const word of words) {
+                        // Omitir emojis y números
+                        let isEmoji = false;
+                        for (const heart of HEART_EMOJIS) {
+                            if (word.includes(heart)) {
+                                isEmoji = true;
+                                break;
+                            }
+                        }
+                        if (!isEmoji && !word.match(/^\d+$/) && word.length > 1 && /[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(word)) {
+                            name = cleanName(word);
+                            break;
+                        }
                     }
                 }
                 
                 if (!name || name.length < 1) {
-                    console.log(`Línea ${i + 1}: No se pudo extraer nombre`);
+                    console.log(`Línea ${i + 1}: No se pudo extraer nombre - "${line.substring(0, 50)}"`);
                     continue;
                 }
                 
@@ -540,15 +561,8 @@
             console.log(`Análisis completado. Líneas procesadas: ${processedLines}`);
             console.log('Resultados:', results);
             
-            // Guardar para exportación
-            lastResults = results;
-            lastPodiums = podiumTotals;
-            
             // Mostrar resultados
             displayResults(results, podiumTotals);
-            
-            // Asegurar botón de exportación
-            addExportButton();
         }
         
         // ========== MOSTRAR RESULTADOS ==========
@@ -559,12 +573,12 @@
             summaryContent.innerHTML = '';
             
             if (Object.keys(results).length === 0) {
-                resultsContainer.innerHTML = '<div class="result-item">No se encontraron patrones válidos en los mensajes.</div>';
+                resultsContainer.innerHTML = '<div class="result-item">No se encontraron patrones válidos en los mensajes. Asegúrate de usar el formato: +[cantidad] [corazón] @[nombre]</div>';
                 summaryContent.innerHTML = 'No se pudieron extraer datos de los mensajes.';
                 return;
             }
             
-            // Ordenar resultados
+            // Ordenar resultados por puntaje total
             const sortedResults = Object.entries(results).sort((a, b) => {
                 const totalA = Object.values(a[1].totals).reduce((sum, val) => sum + val, 0);
                 const totalB = Object.values(b[1].totals).reduce((sum, val) => sum + val, 0);
@@ -598,8 +612,8 @@
                     return `<div class="points-type"><span class="points-value" ${pointColor}>${points}</span> <span class="emoji-icon">${emoji}</span></div>`;
                 }).join('');
                 
-                // Detalles
-                const detailItems = data.details.slice(0, 5).map(d => {
+                // Detalles (últimos 5)
+                const detailItems = data.details.slice(-5).reverse().map(d => {
                     const sign = d.points >= 0 ? '+' : '';
                     const color = d.points >= 0 ? '' : 'style="color: #ff4081;"';
                     return `<span class="point-item" ${color}>${sign}${d.points}${d.emoji}</span>`;
@@ -688,121 +702,28 @@
             `;
         }
         
-        // ========== SISTEMA DE EXPORTACIÓN ==========
-        
-        function addExportButton() {
-            if (exportButtonAdded) return;
-            
-            // Verificar si ya existe
-            if (document.getElementById('exportBtn')) {
-                exportButtonAdded = true;
-                return;
-            }
-            
-            const buttonGroup = document.querySelector('.button-group');
-            if (!buttonGroup) return;
-            
-            const exportBtn = document.createElement('button');
-            exportBtn.id = 'exportBtn';
-            exportBtn.className = 'analyze-btn';
-            exportBtn.innerHTML = '📥 Exportar a TXT';
-            exportBtn.style.backgroundColor = '#28a745';
-            exportBtn.style.marginTop = '10px';
-            
-            exportBtn.addEventListener('click', function() {
-                exportToTxt();
-            });
-            
-            buttonGroup.appendChild(exportBtn);
-            exportButtonAdded = true;
-            console.log('Botón de exportación agregado');
-        }
-        
-        function exportToTxt() {
-            if (!lastResults || Object.keys(lastResults).length === 0) {
-                alert('No hay resultados para exportar. Primero analiza los mensajes.');
-                return;
-            }
-            
-            try {
-                // Crear contenido
-                let content = `ANÁLISIS DE PUNTOS - ${new Date().toLocaleString()}\n`;
-                content += '='.repeat(60) + '\n\n';
-                
-                content += 'RESULTADOS:\n';
-                content += '='.repeat(60) + '\n\n';
-                
-                // Ordenar resultados
-                const sortedResults = Object.entries(lastResults).sort((a, b) => {
-                    const totalA = Object.values(a[1].totals).reduce((sum, val) => sum + val, 0);
-                    const totalB = Object.values(b[1].totals).reduce((sum, val) => sum + val, 0);
-                    return totalB - totalA;
-                });
-                
-                sortedResults.forEach(([name, data], index) => {
-                    const totalPerson = Object.values(data.totals).reduce((sum, val) => sum + val, 0);
-                    content += `${index + 1}. ${name}: ${totalPerson} puntos\n`;
-                    
-                    // Detalles por emoji
-                    Object.entries(data.totals).forEach(([emoji, points]) => {
-                        const sign = points >= 0 ? '+' : '';
-                        content += `   ${sign}${points} ${emoji}\n`;
-                    });
-                    
-                    content += '\n';
-                });
-                
-                // Podios si hay
-                if (lastPodiums) {
-                    const activePodiums = Object.entries(lastPodiums).filter(([_, points]) => points !== 0);
-                    if (activePodiums.length > 0) {
-                        content += 'PODIOS:\n';
-                        content += '='.repeat(60) + '\n\n';
-                        
-                        activePodiums.forEach(([emoji, points]) => {
-                            const sign = points >= 0 ? '+' : '';
-                            content += `Casa ${emoji}: ${sign}${points}\n`;
-                        });
-                        
-                        content += '\n';
-                    }
-                }
-                
-                // Crear y descargar archivo
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                
-                const now = new Date();
-                const filename = `analisis_${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}_${now.getHours()}-${now.getMinutes()}.txt`;
-                
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                console.log('Archivo exportado:', filename);
-                
-            } catch (error) {
-                console.error('Error al exportar:', error);
-                alert('Error al exportar los datos.');
-            }
-        }
-        
         // ========== FUNCIONES AUXILIARES ==========
         
         function clearContent() {
             messageInput.value = '';
             resultsContainer.innerHTML = '';
             summaryContent.innerHTML = 'Esperando análisis de datos...';
-            lastResults = null;
-            lastPodiums = null;
             console.log('Contenido limpiado');
         }
         
-// ========== INICIALIZACIÓN ==========
+        // Función para agregar mensaje de ejemplo
+        function addExample() {
+            const example = `+5 ❤️ @Ana
+-2 💙 @Luis
++3 💜 @Carlos
++1 🧡 @Maria
+-1 🖤 @Pedro
+podio +10 💙`;
+            messageInput.value = example;
+            analyzeMessages();
+        }
+        
+        // ========== INICIALIZACIÓN ==========
         
         function init() {
             console.log('Inicializando aplicación...');
@@ -811,20 +732,20 @@
             analyzeBtn.addEventListener('click', analyzeMessages);
             clearBtn.addEventListener('click', clearContent);
             
-            // Análisis automático al cargar si hay contenido
-            setTimeout(() => {
-                if (messageInput.value.trim()) {
-                    console.log('Contenido detectado, analizando automáticamente...');
-                    analyzeMessages();
-                } else {
-                    console.log('Sin contenido inicial');
-                }
-            }, 1000);
+            // Agregar botón de ejemplo (opcional, puedes descomentar si quieres)
+            // const exampleBtn = document.createElement('button');
+            // exampleBtn.textContent = '📝 Ejemplo';
+            // exampleBtn.className = 'clear-btn';
+            // exampleBtn.addEventListener('click', addExample);
+            // document.querySelector('.button-group').appendChild(exampleBtn);
             
             console.log('Aplicación inicializada correctamente');
+            console.log('Corazones soportados:', HEART_EMOJIS);
         }
         
         // Iniciar la aplicación
         init();
     });
 </script>
+</body>
+</html>
