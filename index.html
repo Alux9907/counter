@@ -78,6 +78,7 @@
             font-size: 1rem;
             resize: vertical;
             transition: border 0.3s;
+            font-family: monospace;
         }
         
         textarea:focus {
@@ -127,6 +128,8 @@
         
         .results {
             margin-top: 25px;
+            max-height: 500px;
+            overflow-y: auto;
         }
         
         .result-item {
@@ -297,8 +300,8 @@
         <div class="instructions">
             <h3>📋 Instrucciones:</h3>
             <ul>
-                <li>Pega tus mensajes en el área de texto (formato: +[cantidad] [corazón] @[nombre])</li>
-                <li>Ejemplo: <strong>+3 ❤️ @Juan</strong> o <strong>-1 💙 @María</strong></li>
+                <li>Pega tus mensajes en el área de texto (formato: +[cantidad][corazón] @[nombre])</li>
+                <li>Ejemplo: <strong>+15🖤 @Dante</strong> o <strong>+20❤️ @Edgar</strong></li>
                 <li>Haz clic en "Analizar Mensajes" para procesar los datos</li>
                 <li>Los resultados mostrarán el total de puntos por persona, separados por tipo de corazón</li>
                 <li>Puedes usar el botón "Limpiar" para empezar de nuevo</li>
@@ -323,7 +326,7 @@
         <div class="content">
             <div class="input-section">
                 <h2 class="section-title">Mensajes a Analizar</h2>
-                <textarea id="messageInput" placeholder="Pega aquí tus mensajes...&#10;Ejemplo:&#10;+5 ❤️ @Ana&#10;-2 💙 @Luis&#10;+3 💜 @Carlos"></textarea>
+                <textarea id="messageInput" placeholder="Pega aquí tus mensajes...&#10;Ejemplo:&#10;+15🖤 @Dante&#10;+20❤️ @Edgar&#10;+10🖤 @Dante"></textarea>
                 
                 <div class="button-group">
                     <button class="analyze-btn" id="analyzeBtn">Analizar Mensajes</button>
@@ -363,43 +366,14 @@
         console.log('Elementos del DOM encontrados correctamente');
         
         // ========== CONFIGURACIÓN ==========
-        // LISTA COMPLETA DE CORAZONES SEGÚN SOLICITUD
+        // LISTA COMPLETA DE CORAZONES
         const HEART_EMOJIS = ['❤️', '🧡', '💛', '💚', '💙', '💜', '🤎', '🖤', '🤍', '🩷', '🩵', '🩶', '♥️'];
         
         // ========== FUNCIONES BÁSICAS ==========
         
-        // Función mejorada para detectar corazones
-        function detectHeartEmoji(text, startIndex) {
-            if (!text || startIndex >= text.length) return '';
-            
-            // Buscar desde la posición indicada
-            const searchText = text.substring(startIndex);
-            
-            // Ordenar por longitud para detectar primero los más largos (como ❤️ que tiene variante)
-            const sortedEmojis = [...HEART_EMOJIS].sort((a, b) => b.length - a.length);
-            
-            for (const emoji of sortedEmojis) {
-                if (searchText.indexOf(emoji) === 0) {
-                    return emoji;
-                }
-            }
-            
-            // Búsqueda más flexible
-            for (const emoji of sortedEmojis) {
-                if (searchText.includes(emoji)) {
-                    return emoji;
-                }
-            }
-            
-            return '';
-        }
-        
-        // Función para encontrar todos los corazones en un texto
         function findAllHearts(text) {
             const found = [];
-            const sortedEmojis = [...HEART_EMOJIS].sort((a, b) => b.length - a.length);
-            
-            for (const emoji of sortedEmojis) {
+            for (const emoji of HEART_EMOJIS) {
                 if (text.includes(emoji) && !found.includes(emoji)) {
                     found.push(emoji);
                 }
@@ -419,7 +393,7 @@
             return cleaned || name;
         }
         
-        // ========== FUNCIÓN PRINCIPAL DE ANÁLISIS ==========
+        // ========== FUNCIÓN PRINCIPAL DE ANÁLISIS (CORREGIDA) ==========
         
         function analyzeMessages() {
             console.log('Iniciando análisis...');
@@ -464,69 +438,37 @@
                     }
                 }
                 
-                // DETECTAR PUNTOS NORMALES - Patrón mejorado
+                // ⭐ LÍNEA CORREGIDA - Solo captura números que tienen un corazón después
                 const pointMatch = line.match(/([+-])(\d+)\s*([❤️🧡💛💚💙💜🤎🖤🤍🩷🩵🩶♥️])/);
+                
                 if (!pointMatch) continue;
                 
                 const sign = pointMatch[1];
                 const points = parseInt(pointMatch[2]);
+                const emoji = pointMatch[3];
                 const finalPoints = sign === '+' ? points : -points;
                 
-                const pointIndex = line.indexOf(pointMatch[0]);
-                const afterSignIndex = pointIndex + pointMatch[0].length;
+                // Verificar que el corazón sea válido
+                if (!HEART_EMOJIS.includes(emoji)) continue;
                 
-                // Obtener emoji - buscar inmediatamente después del número
-                let emoji = '';
-                const afterSignText = line.substring(afterSignIndex);
-                
-                // Buscar cualquier corazón en el texto restante
-                const sortedEmojis = [...HEART_EMOJIS].sort((a, b) => b.length - a.length);
-                for (const heart of sortedEmojis) {
-                    if (afterSignText.includes(heart)) {
-                        emoji = heart;
-                        break;
-                    }
-                }
-                
-                if (!emoji) continue;
-                
-                // EXTRAER NOMBRE - Múltiples estrategias
+                // EXTRAER NOMBRE después del corazón
                 let name = '';
+                const emojiIndex = line.indexOf(emoji, pointMatch.index + pointMatch[0].length - 1);
                 
-                // Estrategia 1: Buscar @nombre
-                const atMatch = line.match(/@([A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\s_.-]+)/);
-                if (atMatch) {
-                    name = cleanName(atMatch[1]);
-                }
-                
-                // Estrategia 2: Buscar después del corazón
-                if (!name) {
-                    const emojiIndex = line.indexOf(emoji);
-                    if (emojiIndex !== -1) {
-                        let afterEmoji = line.substring(emojiIndex + emoji.length);
-                        // Tomar la primera palabra después del corazón
-                        const wordMatch = afterEmoji.match(/^\s*([A-Za-z0-9ÁÉÍÓÚáéíóúÑñ_.-]+)/);
-                        if (wordMatch && wordMatch[1]) {
-                            name = cleanName(wordMatch[1]);
-                        }
+                if (emojiIndex !== -1) {
+                    const afterEmoji = line.substring(emojiIndex + emoji.length);
+                    
+                    // Buscar @nombre
+                    const atMatch = afterEmoji.match(/@\s*([A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\s_.-]+)/);
+                    if (atMatch) {
+                        name = cleanName(atMatch[1]);
                     }
-                }
-                
-                // Estrategia 3: Buscar cualquier palabra después del número
-                if (!name) {
-                    const words = line.substring(afterSignIndex).split(/\s+/);
-                    for (const word of words) {
-                        // Omitir emojis y números
-                        let isEmoji = false;
-                        for (const heart of HEART_EMOJIS) {
-                            if (word.includes(heart)) {
-                                isEmoji = true;
-                                break;
-                            }
-                        }
-                        if (!isEmoji && !word.match(/^\d+$/) && word.length > 1 && /[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(word)) {
-                            name = cleanName(word);
-                            break;
+                    
+                    // Si no hay @, buscar nombre después
+                    if (!name) {
+                        const wordMatch = afterEmoji.match(/([A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚáéíóúÑñ\s]*)/);
+                        if (wordMatch) {
+                            name = cleanName(wordMatch[1].split(/\s+/)[0]);
                         }
                     }
                 }
@@ -573,7 +515,7 @@
             summaryContent.innerHTML = '';
             
             if (Object.keys(results).length === 0) {
-                resultsContainer.innerHTML = '<div class="result-item">No se encontraron patrones válidos en los mensajes. Asegúrate de usar el formato: +[cantidad] [corazón] @[nombre]</div>';
+                resultsContainer.innerHTML = '<div class="result-item">No se encontraron patrones válidos en los mensajes. Asegúrate de usar el formato: +[cantidad][corazón] @[nombre]</div>';
                 summaryContent.innerHTML = 'No se pudieron extraer datos de los mensajes.';
                 return;
             }
@@ -612,7 +554,7 @@
                     return `<div class="points-type"><span class="points-value" ${pointColor}>${points}</span> <span class="emoji-icon">${emoji}</span></div>`;
                 }).join('');
                 
-                // Detalles (últimos 5)
+                // Detalles
                 const detailItems = data.details.slice(-5).reverse().map(d => {
                     const sign = d.points >= 0 ? '+' : '';
                     const color = d.points >= 0 ? '' : 'style="color: #ff4081;"';
@@ -711,18 +653,6 @@
             console.log('Contenido limpiado');
         }
         
-        // Función para agregar mensaje de ejemplo
-        function addExample() {
-            const example = `+5 ❤️ @Ana
--2 💙 @Luis
-+3 💜 @Carlos
-+1 🧡 @Maria
--1 🖤 @Pedro
-podio +10 💙`;
-            messageInput.value = example;
-            analyzeMessages();
-        }
-        
         // ========== INICIALIZACIÓN ==========
         
         function init() {
@@ -731,13 +661,6 @@ podio +10 💙`;
             // Configurar eventos
             analyzeBtn.addEventListener('click', analyzeMessages);
             clearBtn.addEventListener('click', clearContent);
-            
-            // Agregar botón de ejemplo (opcional, puedes descomentar si quieres)
-            // const exampleBtn = document.createElement('button');
-            // exampleBtn.textContent = '📝 Ejemplo';
-            // exampleBtn.className = 'clear-btn';
-            // exampleBtn.addEventListener('click', addExample);
-            // document.querySelector('.button-group').appendChild(exampleBtn);
             
             console.log('Aplicación inicializada correctamente');
             console.log('Corazones soportados:', HEART_EMOJIS);
